@@ -35,6 +35,12 @@ link_dir() {
   fi
 }
 
+# git commit identity (~/.gitconfig doesn't survive a rebuild either).
+# Uses the GitHub-provided noreply address, not a real email, since this
+# repo is public — see https://github.com/zacharyhuber/dotfiles/issues/1
+git config --global user.name "zacharyhuber"
+git config --global user.email "35816256+zacharyhuber@users.noreply.github.com"
+
 # ~/development -> /data/development
 link_dir "$DEV" "$HOME_DIR/development"
 

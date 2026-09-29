@@ -113,6 +113,17 @@ setup_zshrc() {
   cp "$src_zshrc" "$dst_zshrc"
 }
 
+# This host has no genuine upstream IPv6 (ISP's 6RD is broken/absent), so
+# leaving forwarding enabled just gets Tailscale exit-node clients to
+# attempt (and fail) real IPv6 instead of falling back to IPv4 cleanly.
+# Requires the add-on's container to be privileged/NET_ADMIN — /proc/sys is
+# read-only under default container confinement regardless of capabilities,
+# so this is a no-op (warns) until that's granted.
+setup_disable_ipv6_forwarding() {
+  echo "net.ipv6.conf.all.forwarding=0" > /etc/sysctl.d/99-disable-ipv6-forwarding.conf
+  sysctl -w net.ipv6.conf.all.forwarding=0
+}
+
 # Claude Code CLI install (requires bash, curl, libgcc, libstdc++, ripgrep
 # in the add-on's "packages" option). Separate from settings below so a
 # network hiccup during install doesn't also block the settings copy.
@@ -145,5 +156,6 @@ setup_development_symlink || warn "~/development symlink step failed"
 setup_config_dirs         || warn "~/.config symlinks step failed"
 setup_zsh_autocomplete    || warn "zsh-autocomplete step failed"
 setup_zshrc               || warn "~/.zshrc step failed"
+setup_disable_ipv6_forwarding || warn "ipv6 forwarding sysctl step failed (needs privileged/NET_ADMIN add-on config)"
 setup_claude_install      || warn "claude code install step failed"
 setup_claude_settings     || warn "claude code settings step failed"

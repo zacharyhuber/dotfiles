@@ -248,6 +248,23 @@ setup_tailscaled() {
 		warn "tailscale not logged in: run 'tailscale up --ssh --hostname=$TS_HOSTNAME' and open the URL"
 }
 
+# Encrypted USB SSD -> /media/ssd + Taildrive share. Plan and scripts live in
+# /data/development/ssd-taildrive (not part of this repo). Inert until the
+# keyfile exists (ssd-addkey.sh), so a fresh rebuild never blocks on a
+# passphrase prompt. Runs in the background after setup_tailscaled because the
+# unlock waits for the USB disk and the share needs the tailscaled socket.
+setup_ssd_taildrive() {
+	ssd_dir="$DEV/ssd-taildrive"
+	if [ ! -f "$ssd_dir/ssd-unlock.sh" ]; then
+		warn "$ssd_dir missing, skipping SSD unlock"
+		return 1
+	fi
+	[ -f /data/ssd.key ] || return 0 # keyfile not set up: unlock by hand
+	(
+		sh "$ssd_dir/ssd-unlock.sh" && sh "$ssd_dir/ssd-share.sh"
+	) >>/var/log/ssd-unlock.log 2>&1 &
+}
+
 setup_git_identity || warn "git identity step failed"
 setup_development_symlink || warn "~/development symlink step failed"
 setup_config_dirs || warn "~/.config symlinks step failed"
@@ -258,3 +275,4 @@ setup_claude_install || warn "claude code install step failed"
 setup_claude_settings || warn "claude code settings step failed"
 setup_claude_state || warn "claude code session persistence step failed"
 setup_tailscaled || warn "tailscaled step failed"
+setup_ssd_taildrive || warn "SSD unlock/share step failed"
